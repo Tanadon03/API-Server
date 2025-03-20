@@ -18,7 +18,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Dynamically load routes
 readdirSync('./_Routes').map((file) => {
-  app.use('/api', require(`./_Routes/${file}`));
+  app.use('', require(`./_Routes/${file}`));
 });
 
 // Start server
