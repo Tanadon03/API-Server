@@ -2,6 +2,7 @@
 const axios = require('axios');
 
 const logUrl = process.env.LOG_URL;
+const AuthorKey = process.env.API_KEY;
 
 // GET all logs
 // exports.listLogs = async (req, res) => {
@@ -24,6 +25,7 @@ exports.getLog = async (req, res) => {
     const id = parseInt(req.params.id); // แปลง drone_id เป็นตัวเลข
     console.log('Requested drone_id:', id); // Debug
     const response = await axios.get(logUrl);
+    
 
     let logs = response.data.items; // ดึง logs
 
@@ -60,29 +62,60 @@ exports.getLog = async (req, res) => {
 };
 
 // POST new log
+// Controller สำหรับสร้าง Drone Log (รวม Middleware เข้ามา)
 exports.createLog = async (req, res) => {
-  const { celsius, drone_id, drone_name, country } = req.body;
-
-  if (!celsius || !drone_id || !drone_name || !country) {
-    return res
-      .status(400)
-      .send("Missing required fields: celsius, drone_id, drone_name, or country");
-  }
-
   try {
-    console.log("logUrl:", logUrl); // Verify the URL
-    console.log("Payload:", { celsius, drone_id, drone_name, country }); // Verify the data
-    const response = await axios.post(
-      logUrl,
-      { celsius, drone_id, drone_name, country },
-      { headers: { "Content-Type": "application/json" } }
-    );
+    // ตรวจสอบ Authorization Header (ส่วนของ Middleware เดิม)
+    const authHeader = req.headers.authorization;
 
-    console.log("Insert complete, response:", response.data); // Log server response
-    res.status(200).send("Insert complete");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({ error: "Unauthorized: No Bearer token provided" });
+    }
+
+    const AuthorKey = authHeader.split(" ")[1];
+    if (!AuthorKey) {
+      return res.status(403).json({ error: "Forbidden: Invalid token" });
+    }
+
+    // ดึงข้อมูลจาก request body
+    const { celsius, drone_id, drone_name, country } = req.body;
+
+    // ตรวจสอบว่ามีข้อมูลครบทุกฟิลด์หรือไม่
+    if (!celsius || !drone_id || !drone_name || !country) {
+      return res.status(400).json({ error: "Missing required fields: celsius, drone_id, drone_name, or country" });
+    }
+
+    // เตรียม payload สำหรับส่งไปยัง PocketBase
+    const payload = {
+      celsius: Number(celsius), // แปลงเป็นตัวเลข
+      drone_id: Number(drone_id), // จากตัวอย่าง GET เห็นว่า drone_id เป็นตัวเลข
+      drone_name: String(drone_name), // เก็บเป็น string
+      country: String(country), // เก็บเป็น string
+    };
+
+    // ส่งคำขอ POST ไปยัง PocketBase
+    const response = await axios.post(logUrl, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${AuthorKey}`, // ใช้ token ที่ได้รับจาก header
+      },
+    });
+
+    // ส่งผลลัพธ์กลับไปยัง client
+    return res.status(200).json({
+      message: "Drone log created successfully",
+      data: response.data,
+    });
+
   } catch (error) {
-    console.error("Error details:", error.response ? error.response.data : error.message);
-    res.status(500).send("Error handling the data");
+    // จัดการข้อผิดพลาด
+    const errorMessage = error.response?.data?.message || error.message;
+    const errorCode = error.response?.status || 500;
+
+    console.error("Error creating drone log:", errorMessage);
+    return res.status(errorCode).json({
+      error: "Failed to create drone log",
+      details: errorMessage,
+    });
   }
 };
-  
