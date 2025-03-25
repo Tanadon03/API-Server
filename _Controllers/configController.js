@@ -5,21 +5,29 @@ const configUrl = process.env.CONFIG_URL;
 
 exports.getConfigs = async (req, res) => {
   try {
+    const id = parseInt(req.params.id); // Convert to integer
     const response = await axios.get(configUrl);
-    const drones = response.data.data
-    
+    const drones = response.data.data;
+
     if (!drones || drones.length === 0) {
       return res.status(404).json({ error: 'No drones found' });
     }
 
-    const filter = drones.map(drone => ({
-       drone_id: drone.drone_id, 
-       drone_name: drone.drone_name,
-       light: drone.light, 
-       country: drone.country,
-       weight: drone.weight 
-    }));
-    res.status(200).json(filter);
+    const drone = drones.find(d => d.drone_id === id);
+
+    if (!drone) {
+      return res.status(404).json({ error: `Drone with ID ${id} not found` });
+    }
+
+    const filteredDrone = {
+      drone_id: drone.drone_id,
+      drone_name: drone.drone_name,
+      light: drone.light,
+      country: drone.country,
+      weight: drone.weight
+    };
+
+    res.status(200).json(filteredDrone);
 
   } catch (err) {
     console.error('Error fetching configs:', err.message);
