@@ -22,12 +22,12 @@ const AuthorKey = process.env.API_KEY;
 // GET log by ID
 exports.getLog = async (req, res) => {
   try {
-    const id = parseInt(req.params.id); // แปลง drone_id เป็นตัวเลข
-    console.log('Requested drone_id:', id); // Debug
+    const id = parseInt(req.params.id);
+    console.log('Requested drone_id:', id);
     const response = await axios.get(logUrl);
     
 
-    let logs = response.data.items; // ดึง logs
+    let logs = response.data.items;
 
     if (!logs || logs.length === 0) {
       return res.status(404).json({ error: 'No logs found' });
@@ -44,13 +44,13 @@ exports.getLog = async (req, res) => {
         created: log.created,
         country: log.country,
         celsius: log.celsius
-      })); // ส่งเฉพาะฟิลด์ที่ต้องการ
+      }));
 
       if (!filteredLogs || filteredLogs.length === 0) {
         return res.status(404).json({ error: `No drones id or data from : ${id}` });
       }
 
-    console.log('Filtered Logs:', filteredLogs); // Debug
+    console.log('Filtered Logs:', filteredLogs);
 
     // ส่ง response เป็น filteredLogs ที่มีแค่ 5 ฟิลด์
     res.status(200).json(filteredLogs);
@@ -80,24 +80,23 @@ exports.createLog = async (req, res) => {
     // ดึงข้อมูลจาก request body
     const { celsius, drone_id, drone_name, country } = req.body;
 
-    // ตรวจสอบว่ามีข้อมูลครบทุกฟิลด์หรือไม่
     if (!celsius || !drone_id || !drone_name || !country) {
       return res.status(400).json({ error: "Missing required fields: celsius, drone_id, drone_name, or country" });
     }
 
     // เตรียม payload สำหรับส่งไปยัง PocketBase
     const payload = {
-      celsius: Number(celsius), // แปลงเป็นตัวเลข
-      drone_id: Number(drone_id), // จากตัวอย่าง GET เห็นว่า drone_id เป็นตัวเลข
-      drone_name: String(drone_name), // เก็บเป็น string
-      country: String(country), // เก็บเป็น string
+      celsius: Number(celsius),
+      drone_id: Number(drone_id),
+      drone_name: String(drone_name),
+      country: String(country),
     };
 
     // ส่งคำขอ POST ไปยัง PocketBase
     const response = await axios.post(logUrl, payload, {
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${AuthorKey}`, // ใช้ token ที่ได้รับจาก header
+        "Authorization": `Bearer ${AuthorKey}`,
       },
     });
 
