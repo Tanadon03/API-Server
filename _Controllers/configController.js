@@ -41,7 +41,6 @@ exports.getStatus = async (req, res) => {
     const id = parseInt(req.params.id); // Convert to integer
     const response = await axios.get(configUrl); // Get all data
 
-    // Check if `data` exists in the response
     if (!response.data || !response.data.data) {
       return res.status(500).json({ error: 'Invalid API response format' });
     }
